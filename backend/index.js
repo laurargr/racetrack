@@ -32,13 +32,14 @@ io.use((client, next) => {
     }
 });
 
-io.on("connection", (cliet) => {
-    console.log("client connected " + cliet.id)
+io.on("connection", (client) => {
+    console.log("client connected " + client.id)
+    client.on("disconnect", (client) => {
+        console.log("client " + client.id + " disconnected")
+    })
 })
 
-io.on("disconnect", (client) => {
-    console.log("client " + client.id + " disconnected")
-})
+
 httpServer.listen(3000, () => {
     console.log("server running")
 })
