@@ -2,21 +2,126 @@ import React, {useEffect, useState} from "react";
 import {socket} from "../socket.js"
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import {Typography} from "@mui/material";
+import {Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography} from "@mui/material";
 import TextField from "@mui/material/TextField";
 import {Button} from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
 import Box from "@mui/material/Box";
+import { DriversTable } from "../components/DriversTable.jsx";
+import { SessionsTable } from "../components/SessionsTable.jsx";
 
 
 export function FrontDesk() {
 
     const [password, setPassword] = useState("");
     const [loading, setloading] = useState(false);
+    const [connected, setConnected] = useState(false);
+
+    const cars = [
+        {
+            id: 1,
+            name: "Car A"
+        },
+        {
+            id: 2,
+            name: "Car B"
+        },
+        {
+            id: 3,
+            name: "Car C"
+        },
+        {
+            id: 4,
+            name: "Car D"
+        },
+        {
+            id: 5,
+            name: "Car E"
+        }, 
+        {
+            id: 6,
+            name: "Car F"
+        },
+        {
+            id: 7,
+            name: "Car G"
+        },
+        {
+            id: 8,
+            name: "Car H"
+        }
+    ]
+
+    const drivers = [
+        {
+            id: 1,
+            name: "John Doe", 
+            assignedCarId: 1
+        },
+        {
+            id: 2,
+            name: "Jane Doe",
+            assignedCarId: 2
+        },
+        {
+            id: 3,
+            name: "Bob Smith",
+            assignedCarId: 3
+        },
+        {
+            id: 4,
+            name: "Alice Johnson",
+            assignedCarId: 4
+        },
+        {
+            id: 5,
+            name: "Charlie Brown",  
+            assignedCarId: 5
+        }
+    ]   
+
+    const sessions = [
+        {
+            id: 1,
+            name: "Section A",
+            date: "2024-06-01",
+            time: "10:00",
+            driverIds: [1, 2]
+        },
+        {
+            id: 2,
+            name: "Section B",
+            date: "2024-06-01", 
+            time: "11:00",
+            driverIds: [3, 4]   
+        },
+        {
+            id: 3,
+            name: "Section C",
+            date: "2024-06-01",
+            time: "12:00",
+            driverIds: [5]
+        },
+        {
+            id: 4,
+            name: "Section D",
+            date: "2024-06-01",
+            time: "13:00",
+            driverIds: [1, 2]
+        },
+        {
+            id: 5,
+            name: "Section E",
+            date: "2024-06-01",
+            time: "14:00",
+            driverIds: [3, 4, 5]
+        }
+    ]
 
     useEffect(() => {
         socket.on("connect", () => {
             setloading(false);
+            setConnected(true);
             console.log("Connected to server")
         })
         socket.on("connect_error", () => {
@@ -24,6 +129,7 @@ export function FrontDesk() {
             setloading(false);
         })
         socket.on("disconnect", () => {
+            setConnected(false);
             console.log("disconnected from server")
         })
         return () => {
@@ -47,8 +153,16 @@ export function FrontDesk() {
         setloading(true);
         setPassword("");
     }
-    return (
-
+    return connected ? (
+        <Grid container spacing={2}>
+            <Grid item size={{xs: 12, md: 12, lg: 6}}>
+                <DriversTable drivers={drivers} cars={cars}/>
+            </Grid>
+            <Grid item size={{xs: 12, md: 12, lg: 6}}>
+                <SessionsTable sessions={sessions} drivers={drivers}/>
+            </Grid>
+        </Grid>
+    ) : (
         <Box display="flex"
              justifyContent="center"
              alignItems="center"
@@ -63,7 +177,5 @@ export function FrontDesk() {
                 </CardContent>
             </Card>
 
-        </Box>
-
-    )
+        </Box>)
 }
