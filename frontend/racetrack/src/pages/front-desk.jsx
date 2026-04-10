@@ -9,6 +9,7 @@ import SendIcon from '@mui/icons-material/Send';
 import Box from "@mui/material/Box";
 import { DriversTable } from "../components/DriversTable.jsx";
 import { SessionsTable } from "../components/SessionsTable.jsx";
+import { CreateDriver } from "../components/CreateDriver.jsx";
 
 
 export function FrontDesk() {
@@ -16,69 +17,7 @@ export function FrontDesk() {
     const [password, setPassword] = useState("");
     const [loading, setloading] = useState(false);
     const [connected, setConnected] = useState(false);
-
-    const cars = [
-        {
-            id: 1,
-            name: "Car A"
-        },
-        {
-            id: 2,
-            name: "Car B"
-        },
-        {
-            id: 3,
-            name: "Car C"
-        },
-        {
-            id: 4,
-            name: "Car D"
-        },
-        {
-            id: 5,
-            name: "Car E"
-        }, 
-        {
-            id: 6,
-            name: "Car F"
-        },
-        {
-            id: 7,
-            name: "Car G"
-        },
-        {
-            id: 8,
-            name: "Car H"
-        }
-    ]
-
-    const drivers = [
-        {
-            id: 1,
-            name: "John Doe", 
-            assignedCarId: 1
-        },
-        {
-            id: 2,
-            name: "Jane Doe",
-            assignedCarId: 2
-        },
-        {
-            id: 3,
-            name: "Bob Smith",
-            assignedCarId: 3
-        },
-        {
-            id: 4,
-            name: "Alice Johnson",
-            assignedCarId: 4
-        },
-        {
-            id: 5,
-            name: "Charlie Brown",  
-            assignedCarId: 5
-        }
-    ]   
+    const [drivers, setDrivers] = useState([]);
 
     const sessions = [
         {
@@ -132,6 +71,9 @@ export function FrontDesk() {
             setConnected(false);
             console.log("disconnected from server")
         })
+        socket.on("driversList", (drivers) => {
+            setDrivers(drivers);
+        })
         return () => {
             socket.off("connect");
             socket.off("connect_error");
@@ -156,12 +98,16 @@ export function FrontDesk() {
     return connected ? (
         <Grid container spacing={2}>
             <Grid item size={{xs: 12, md: 12, lg: 6}}>
-                <DriversTable drivers={drivers} cars={cars}/>
+                <DriversTable drivers={drivers}/>
+                <hr />
+                <CreateDriver />
             </Grid>
+
             <Grid item size={{xs: 12, md: 12, lg: 6}}>
                 <SessionsTable sessions={sessions} drivers={drivers}/>
             </Grid>
         </Grid>
+        
     ) : (
         <Box display="flex"
              justifyContent="center"

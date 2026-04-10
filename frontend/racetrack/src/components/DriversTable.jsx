@@ -1,7 +1,7 @@
 import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 
 
-export function DriversTable({ drivers, cars }) {
+export function DriversTable({ drivers}) {
     return (
         <> 
          <Typography variant={"h4"}>Drivers</Typography>
@@ -11,7 +11,6 @@ export function DriversTable({ drivers, cars }) {
                     <TableRow>
                         <TableCell>ID</TableCell>
                         <TableCell>Name</TableCell>
-                        <TableCell>Car</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -19,7 +18,6 @@ export function DriversTable({ drivers, cars }) {
                         <TableRow key={d.id}>
                             <TableCell>{d.id}</TableCell>
                             <TableCell>{d.name}</TableCell>
-                            <TableCell>{cars.find((c) => c.id === d.assignedCarId)?.name}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
