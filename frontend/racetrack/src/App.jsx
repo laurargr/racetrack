@@ -4,11 +4,14 @@ import {LeaderBoard} from "./pages/leader-board.jsx";
 import {FrontDesk} from "./pages/front-desk.jsx";
 import {LapLineTracker} from "./pages/lap-line-tracker.jsx"
 import {RaceControl} from "./pages/race-control.jsx"
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 
 export function App (){
   return (
-  <BrowserRouter>
+<LocalizationProvider dateAdapter={AdapterMoment}>
+  <BrowserRouter> 
     <Routes>
       <Route path="/" element={<LeaderBoard/>}></Route>
       <Route path="/front-desk" element={<FrontDesk/>}></Route>
@@ -21,5 +24,6 @@ export function App (){
       <Route path="*" element={<div>Not found</div>}></Route>
     </Routes>
   </BrowserRouter>
+</LocalizationProvider>
   )
 }
