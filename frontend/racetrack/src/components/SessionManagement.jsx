@@ -29,10 +29,13 @@ import {
 } from "@mui/icons-material";
 import { useState } from "react";
 import { DriverAvatar } from "./DriverAvatar";
+import { AssignedCars } from "./AssignedCars";
 
 const MAX_DRIVERS = 8;
 
 export const SessionManagement = ({ sessions, drivers }) => {
+  const sessionsToShow = sessions.filter((s) => s.status !== "running");
+
   const handleAddDriversToSession = (session, selectedDrivers) => {
     console.log("Adding drivers", selectedDrivers, "to session", session);
     socket.emit(
@@ -101,117 +104,65 @@ export const SessionManagement = ({ sessions, drivers }) => {
         </Button>
       </Box>
 
-      {sessions.map((s) => {
-        const assigned = s.driverIds
-          .map((id) => drivers.find((d) => d.id === id))
-          .filter(Boolean);
-        const full = assigned.length >= MAX_DRIVERS;
+      {/* show only sessions that are not running */}
+      {sessionsToShow.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 4 }}>
+          <Typography color="text.secondary">No sessions available</Typography>
+        </Box>
+      ) : (
+        sessionsToShow.map((s) => {
+          const assigned = s.driverIds
+            .map((id) => drivers.find((d) => d.id === id))
+            .filter(Boolean);
+          const full = assigned.length >= MAX_DRIVERS;
 
-        return (
-          <Paper key={s.id} sx={{ overflow: "hidden" }}>
-            <Box
-              sx={{
-                px: 2,
-                py: 1.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                borderBottom: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <EmojiEvents sx={{ fontSize: 18, color: "warning.main" }} />
-                <Typography fontWeight={600} fontSize={14}>
-                  {s.name}
-                </Typography>
-              </Stack>
-              <Stack direction="row" spacing={0.5}>
-                <Tooltip title={full ? "Edit Drivers" : "Add Drivers"}>
-                  <Button
-                    size="small"
-                    onClick={() => openModal(s.id)}
-                    sx={{ minWidth: 0, fontSize: 12 }}
-                  >
-                    {full ? "✎ edit" : "+ drivers"}
-                  </Button>
-                </Tooltip>
-                {/* <Tooltip title={s.expanded ? "Hide Cars" : "Show Cars"}>
-                  <IconButton
-                    size="small"
-                    //   onClick={() => toggleExpand(s.id)}
-                  >
-                    {s.expanded ? (
-                      <ExpandLess fontSize="small" />
-                    ) : (
-                      <ExpandMore fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip> */}
-                <Tooltip title="Remove Session">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleDeleteSession(s.id)}
-                  >
-                    <Close fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </Box>
-
-            {/* <Collapse in={s.expanded}> */}
-            <Divider />
-            <Box sx={{ px: 2, py: 1.5, bgcolor: "grey.50" }}>
-              <Typography
-                variant="overline"
-                fontSize={10}
-                color="text.secondary"
-                display="block"
-                mb={1}
+          return (
+            <Paper key={s.id} sx={{ overflow: "hidden" }}>
+              <Box
+                sx={{
+                  px: 2,
+                  py: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                }}
               >
-                Assigned cars
-              </Typography>
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {assigned.map((d) => {
-                  return (
-                    <Paper
-                      key={d.id}
-                      variant="outlined"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        px: 1.5,
-                        py: 0.75,
-                      }}
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <EmojiEvents sx={{ fontSize: 18, color: "warning.main" }} />
+                  <Typography fontWeight={600} fontSize={14}>
+                    {s.name}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.5}>
+                  <Tooltip title={full ? "Edit Drivers" : "Add Drivers"}>
+                    <Button
+                      size="small"
+                      onClick={() => openModal(s.id)}
+                      sx={{ minWidth: 0, fontSize: 12 }}
                     >
-                      <DriverAvatar name={d.name} size={28} />
-                      <Box>
-                        <Typography
-                          fontSize={12}
-                          fontWeight={600}
-                          lineHeight={1.2}
-                        >
-                          {d.name}
-                        </Typography>
-                        <Typography
-                          fontSize={11}
-                          color="text.secondary"
-                          lineHeight={1.2}
-                        >
-                          Car Number: {s.driverIds.indexOf(d.id) + 1}
-                        </Typography>
-                      </Box>
-                    </Paper>
-                  );
-                })}
+                      {full ? "✎ edit" : "+ drivers"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Remove Session">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDeleteSession(s.id)}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               </Box>
-            </Box>
-            {/* </Collapse> */}
-          </Paper>
-        );
-      })}
+
+              <Divider />
+              <AssignedCars drivers={drivers} session={s} />
+            </Paper>
+          );
+        })
+      )}
 
       <Dialog
         open={!!modal}

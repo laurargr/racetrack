@@ -8,40 +8,95 @@ const { Server } = require("socket.io");
 validations();
 const drivers = [];
 const sessions = [];
-const cars = [
-  {
-    id: 1,
-    name: "Car A",
-  },
-  {
-    id: 2,
-    name: "Car B",
-  },
-  {
-    id: 3,
-    name: "Car C",
-  },
-  {
-    id: 4,
-    name: "Car D",
-  },
-  {
-    id: 5,
-    name: "Car E",
-  },
-  {
-    id: 6,
-    name: "Car F",
-  },
-  {
-    id: 7,
-    name: "Car G",
-  },
-  {
-    id: 8,
-    name: "Car H",
-  },
-];
+const pastSessions = [];
+const sessionTimeouts = new Map();
+const sessionIntervals = new Map();
+
+const DEV_SESSION_TIMEOUT = 60 * 1000; // 1 minute
+const SESSION_TICK_MS = 1000;
+
+const emitSessions = (io) => {
+  io.emit("sessionsList", sessions);
+};
+
+const stopSessionTimer = (sessionId) => {
+  const timeout = sessionTimeouts.get(sessionId);
+  if (timeout) {
+    clearTimeout(timeout);
+    sessionTimeouts.delete(sessionId);
+  }
+
+  const interval = sessionIntervals.get(sessionId);
+  if (interval) {
+    clearInterval(interval);
+    sessionIntervals.delete(sessionId);
+  }
+};
+
+const updateSessionClock = (session) => {
+  if (!session.startedAt) {
+    session.elapsedSeconds = 0;
+    session.remainingSeconds = Math.ceil(DEV_SESSION_TIMEOUT / 1000);
+    return;
+  }
+
+  const elapsedMs = Date.now() - session.startedAt;
+  const remainingMs = Math.max(0, DEV_SESSION_TIMEOUT - elapsedMs);
+  session.elapsedSeconds = Math.floor(elapsedMs / 1000);
+  session.remainingSeconds = Math.ceil(remainingMs / 1000);
+};
+
+const startSessionTimer = (io, session) => {
+  stopSessionTimer(session.id);
+
+  session.startedAt = Date.now();
+  updateSessionClock(session);
+
+  const intervalId = setInterval(() => {
+    if (session.status !== "running") {
+      stopSessionTimer(session.id);
+      return;
+    }
+
+    updateSessionClock(session);
+    io.emit("raceTick", {
+      sessionId: session.id,
+      elapsedSeconds: session.elapsedSeconds,
+      remainingSeconds: session.remainingSeconds,
+    });
+    emitSessions(io);
+  }, SESSION_TICK_MS);
+
+  const timeoutId = setTimeout(() => {
+    endRunningSession(io, session.id, "timeout");
+  }, DEV_SESSION_TIMEOUT);
+
+  sessionIntervals.set(session.id, intervalId);
+  sessionTimeouts.set(session.id, timeoutId);
+};
+
+const endRunningSession = (io, sessionId, reason = "manual") => {
+  const sessionIndex = sessions.findIndex((s) => s.id === sessionId);
+  if (sessionIndex === -1) {
+    return false;
+  }
+
+  const session = sessions[sessionIndex];
+  stopSessionTimer(sessionId);
+  updateSessionClock(session);
+  session.status = "finish";
+  session.endReason = reason;
+  pastSessions.push(session);
+  sessions.splice(sessionIndex, 1);
+
+  io.emit("sessionNotification", {
+    type: "session-ended",
+    sessionId,
+    reason,
+  });
+  emitSessions(io);
+  return true;
+};
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -57,6 +112,7 @@ io.use((client, next) => {
   const token = client.handshake.auth.token;
 
   const authenticationResponse = handleAuthentication(username, token);
+
   if (authenticationResponse) {
     next();
   } else {
@@ -72,7 +128,7 @@ io.on("connection", (client) => {
   client.emit("driversList", drivers);
   client.emit("sessionsList", sessions);
 
-  client.on("disconnect", (client) => {
+  client.on("disconnect", () => {
     console.log("client " + client.id + " disconnected");
   });
 
@@ -83,25 +139,128 @@ io.on("connection", (client) => {
       name: data.name,
     };
     if (drivers.find((d) => d.name === newDriver.name)) {
-      callback({ message: "driver with this name already exists" });
+      callback({ ok: false, message: "driver with this name already exists" });
       return;
     }
     drivers.push(newDriver);
     io.emit("driversList", drivers);
-    callback({ message: "driver created successfully" });
+    callback({ ok: true, message: "driver created successfully" });
   });
 
-  client.on("createSession", (data, callback) => {
-    console.log("creating session with name", data.name);
+  client.on("editDriver", (data, callback) => {
+    const driver = drivers.find((d) => d.id === data.driverId);
+    if (!driver) {
+      callback({ ok: false, message: "driver not found" });
+      return;
+    }
+    if (drivers.find((d) => d.name === data.name)) {
+      callback({ ok: false, message: "driver with this name already exists" });
+      return;
+    }
+    driver.name = data.name;
+    io.emit("driversList", drivers);
+    io.emit("sessionsList", sessions);
+    callback({ ok: true, message: "driver edited successfully" });
+  });
+
+  client.on("deleteDriver", (data, callback) => {
+    const driverIndex = drivers.findIndex((d) => d.id === data.driverId);
+    if (driverIndex === -1) {
+      callback({ ok: false, message: "driver not found" });
+      return;
+    }
+
+    // also remove the driver from any session they are assigned to
+    sessions.forEach((s) => {
+      s.driverIds = s.driverIds.filter((id) => id !== data.driverId);
+    });
+
+    drivers.splice(driverIndex, 1);
+    io.emit("driversList", drivers);
+    io.emit("sessionsList", sessions);
+    console.log("driver deleted with id", sessions);
+    callback({ ok: true, message: "driver deleted successfully" });
+  });
+
+  client.on("createSession", () => {
+    console.log("creating new session");
+    const id = sessions.length > 0 ? sessions[sessions.length - 1].id + 1 : 1;
     const newSession = {
-      id: sessions.length + 1,
-      name: data.name,
-      startTime: data.startTime,
+      id: id,
+      name: "Race #" + id,
       driverIds: [],
     };
     sessions.push(newSession);
-    io.emit("sessionsList", sessions);
-    callback({ message: "session created successfully" });
+    emitSessions(io);
+  });
+  client.on("assignDriverToSession", (data, callback) => {
+    const session = sessions.find((s) => s.id === data.sessionId);
+    if (!session) {
+      callback({ message: "session not found" });
+      return;
+    }
+
+    // up to 8 is alowed because we have only 8 cars, and each driver needs a car
+    if (data.driverIds.length > 8) {
+      callback({
+        ok: false,
+        message: "too many drivers for this session, max is 8",
+      });
+      return;
+    }
+    session.driverIds = data.driverIds;
+
+    emitSessions(io);
+    console.log(sessions);
+    callback({ ok: true, message: "drivers assigned to session successfully" });
+  });
+
+  client.on("deleteSession", (data) => {
+    const sessionIndex = sessions.findIndex((s) => s.id === data.sessionId);
+    if (sessionIndex === -1) {
+      return;
+    }
+    stopSessionTimer(data.sessionId);
+    sessions.splice(sessionIndex, 1);
+    emitSessions(io);
+  });
+
+  client.on("startSession", (data, callback) => {
+    const session = sessions.find((s) => s.id === data.sessionId);
+    if (!session) {
+      callback({ message: "session not found" });
+      return;
+    }
+    if (session.status === "running") {
+      callback({ ok: false, message: "session already running" });
+      return;
+    }
+    session.status = "running";
+    session.mode = "safe"; // default mode
+    startSessionTimer(io, session);
+
+    emitSessions(io);
+    callback({ ok: true, message: "session started successfully" });
+  });
+
+  client.on("endSession", (data, callback) => {
+    const ended = endRunningSession(io, data.sessionId, "manual");
+    if (!ended) {
+      callback({ message: "session not found" });
+      return;
+    }
+    callback({ ok: true, message: "session ended successfully" });
+  });
+
+  client.on("setRaceMode", (data, callback) => {
+    const session = sessions.find((s) => s.id === data.raceId);
+    if (!session) {
+      callback({ message: "session not found" });
+      return;
+    }
+    session.mode = data.mode;
+    emitSessions(io);
+    callback({ ok: true, message: "race mode updated successfully" });
   });
 });
 

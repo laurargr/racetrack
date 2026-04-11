@@ -8,6 +8,7 @@ import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { RaceFlags } from "./pages/race-flags.jsx";
 
 const theme = createTheme({
   palette: {
@@ -94,7 +95,7 @@ export function App() {
               path="/race-countdown"
               element={<div>Race countdown</div>}
             ></Route>
-            <Route path="/race-flags" element={<div>Race flags</div>}></Route>
+            <Route path="/race-flags" element={<RaceFlags />}></Route>
             <Route path="*" element={<div>Not found</div>}></Route>
           </Routes>
         </BrowserRouter>
