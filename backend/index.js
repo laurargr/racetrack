@@ -1,4 +1,5 @@
 require("dotenv").config();
+const { time } = require("console");
 const { validations, handleAuthentication } = require("./validations");
 
 const express = require("express");
@@ -261,6 +262,31 @@ io.on("connection", (client) => {
     session.mode = data.mode;
     emitSessions(io);
     callback({ ok: true, message: "race mode updated successfully" });
+  });
+
+  client.on("recordLap", (data, callback) => {
+    const session = sessions.find((s) => s.id === data.raceId);
+    if (!session) {
+      callback({ message: "session not found" });
+      return;
+    }
+    if (session.status !== "running") {
+      callback({ message: "session is not running" });
+      return;
+    }
+    if (!session.driverIds.includes(data.driverId)) {
+      callback({ message: "driver not assigned to this session" });
+      return;
+    }
+    if (!session.laps) {
+      session.laps = [];
+    }
+    session.laps.push({
+      driverId: data.driverId,
+      time: session.elapsedSeconds
+    });
+    emitSessions(io);
+    callback({ ok: true, message: "lap recorded successfully" });
   });
 });
 

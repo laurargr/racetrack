@@ -18,7 +18,7 @@ export function validations() {
 export function handleAuthentication(username, token) {
   if (username === "receptionist" && token === receptionist_key) {
     return true;
-  } else if (username === "lap-line observer" && token === observer_key) {
+  } else if (username === "lap-line-observer" && token === observer_key) {
     return true;
   } else if (username === "safety-officer" && token === safety_key) {
     return true;

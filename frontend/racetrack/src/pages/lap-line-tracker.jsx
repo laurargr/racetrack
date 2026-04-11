@@ -1,40 +1,54 @@
 import React, {useEffect, useState} from "react";
 import {socket} from "../socket.js"
+import {Login} from "../components/Login.jsx";
+import { Observer } from "../components/Observer.jsx";
+
+
 export function LapLineTracker() {
+    const [loading, setLoading] = useState(false);
+    const [connected, setConnected] = useState(false);
+    const [drivers, setDrivers] = useState([]);
+    const [sessions, setSessions] = useState([]);
 
-    const [password, setPassword] = useState("");
-    const [loading, setloading] = useState(false);
+     useEffect(() => {
+        
+       socket.on("connect", () => {
+         setLoading(false);
+         console.log("Connected to server");
+         setConnected(true);
+       });
+       socket.on("connect_error", () => {
+         alert("invalid credentials");
+         setLoading(false);
+       });
+       socket.on("driversList", (data) => {
+         setDrivers(data);
+       });
+       socket.on("sessionsList", (data) => {
+         setSessions(data);
+       });
+       socket.on("disconnect", () => {
+         setConnected(false);
+         console.log("disconnected from server");
+       });
+       return () => {
+         socket.off("connect");
+         socket.off("connect_error");
+         socket.off("driversList");
+         socket.off("sessionsList");
+         socket.off("disconnect");
+         socket.disconnect();
+       };
+     }, []);
 
-    useEffect(() => {
-        socket.on("connect", () => {
-            setloading(false);
-            console.log("Connected to server")
-        })
-        socket.on("connect_error", () => {
-            alert("invalid credentials")
-            setloading(false);
-        })
-    }, []);
+     const runningRaceOrNextUp =
+       sessions.find((s) => s.status === "running") || sessions[0];
 
-    function connectToWebsocket() {
-        if (loading) {
-            return
-        }
-
-        socket.auth = {
-            username: "lap-line observer",
-            token: password
-        }
-        socket.connect()
-        setloading(true);
-        setPassword("");
-    }
-
-    return (
-        <div>
-            <h1>Hi lap line tracker</h1>
-            <input type={"password"} value={password} onChange={(event) => {setPassword(event.target.value)}} placeholder={"enter your password"}/>
-            <button onClick={()=> connectToWebsocket()}>submit</button>
-        </div>
-    )
+     return (
+        connected ? (<Observer race={runningRaceOrNextUp} drivers={drivers} />
+        ) : (
+            <Login username="lap-line-observer" loading={loading} setLoading={setLoading} />
+        )
+     )
+        
 }
