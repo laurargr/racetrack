@@ -15,6 +15,7 @@ export const Login = ({ username, loading, setLoading }) => {
   const [password, setPassword] = useState("");
 
   function connectToWebsocket(username, password) {
+
     if (loading) {
       return;
     }
@@ -23,6 +24,8 @@ export const Login = ({ username, loading, setLoading }) => {
       username,
       token: password,
     };
+
+    console.log("Attempting to connect to websocket with username", username);
     socket.connect();
     setLoading(true);
     setPassword("");
