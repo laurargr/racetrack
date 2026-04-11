@@ -2,25 +2,13 @@ import React, { useEffect, useState } from "react";
 import { socket } from "../socket.js";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import {
-  Grid,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Typography } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import { Button } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import Box from "@mui/material/Box";
-import { DriversTable } from "../components/DriversTable.jsx";
-import { SessionsTable } from "../components/SessionsTable.jsx";
-import { CreateDriver } from "../components/CreateDriver.jsx";
-import { CreateSession } from "../components/CreateSession.jsx";
+import { DriverManagement } from "../components/DriverManagement.jsx";
+import { SessionManagement } from "../components/SessionManagement.jsx";
 
 export function FrontDesk() {
   const [password, setPassword] = useState("");
@@ -47,7 +35,7 @@ export function FrontDesk() {
       setDrivers(data);
     });
     socket.on("sessionsList", (data) => {
-        console.log("received sessions list", data);
+      console.log("received sessions list", data);
       setSessions(data);
     });
     return () => {
@@ -74,19 +62,20 @@ export function FrontDesk() {
     setPassword("");
   }
   return connected ? (
-    <Grid container spacing={2}>
-      <Grid item size={{ xs: 12, md: 12, lg: 6 }}>
-        <DriversTable drivers={drivers} />
-        <hr />
-        <CreateDriver />
-      </Grid>
-
-      <Grid item size={{ xs: 12, md: 12, lg: 6 }}>
-        <SessionsTable sessions={sessions} drivers={drivers} />
-        <hr />
-        <CreateSession />
-      </Grid>
-    </Grid>
+    <Box sx={{ minHeight: "100vh", p: 3 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 2,
+          maxWidth: 1200,
+          mx: "auto",
+        }}
+      >
+        <DriverManagement drivers={drivers} />
+        <SessionManagement sessions={sessions} drivers={drivers} />
+      </Box>
+    </Box>
   ) : (
     <Box
       display="flex"
