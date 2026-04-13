@@ -90,6 +90,7 @@ const endRunningSession = (io, sessionId, reason = "manual") => {
   pastSessions.push(session);
   sessions.splice(sessionIndex, 1);
 
+  io.emit("pastSessionsList", pastSessions);
   io.emit("sessionNotification", {
     type: "session-ended",
     sessionId,
@@ -128,6 +129,7 @@ io.on("connection", (client) => {
   console.log("client connected " + client.id);
   client.emit("driversList", drivers);
   client.emit("sessionsList", sessions);
+  client.emit("pastSessionsList", pastSessions);
 
   client.on("disconnect", () => {
     console.log("client " + client.id + " disconnected");
@@ -283,7 +285,7 @@ io.on("connection", (client) => {
     }
     session.laps.push({
       driverId: data.driverId,
-      time: session.elapsedSeconds
+      time: session.elapsedSeconds,
     });
     emitSessions(io);
     callback({ ok: true, message: "lap recorded successfully" });

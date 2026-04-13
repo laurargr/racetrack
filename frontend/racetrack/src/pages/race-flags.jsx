@@ -44,8 +44,8 @@ export const RaceFlags = () => {
   }, []);
 
   const runningSession = sessions.find((s) => s.status === "running");
-  const currentMode = runningSession?.mode || "finish";
-  const isFinish = currentMode === "finish";
+  const currentMode = runningSession ? runningSession.mode : "danger";
+  const isFinish = Boolean(runningSession) && currentMode === "finish";
 
   return (
     <Box
