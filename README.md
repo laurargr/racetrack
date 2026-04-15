@@ -78,7 +78,7 @@ http://localhost:5173
   - `/race-control` -> `SAFETY_KEY`
   - `/lap-line-tracker` -> `OBSERVER_KEY`
 - Public display pages do not require a key.
-- Invalid or mismatched keys are rejected.
+- Invalid or mismatched keys are rejected (with a 500ms server delay).
 
 ## User Guide
 
