@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { socket } from "../socket";
 import { Box, Card, Typography } from "@mui/material";
 
+function formatMinSec(totalSeconds) {
+  const seconds = Math.max(0, Number(totalSeconds) || 0);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}.${String(remainingSeconds).padStart(2, "0")}`;
+}
+
 export function RaceCountdown() {
   const [sessions, setSessions] = useState([]);
 
@@ -68,12 +75,12 @@ export function RaceCountdown() {
           variant="h1"
           sx={{ fontSize: { xs: 80, sm: 140 }, lineHeight: 1, fontWeight: 700 }}
         >
-          {remainingSeconds}s
+          {formatMinSec(remainingSeconds)}
         </Typography>
 
         {runningRaceOrNextUp?.status === "running" && (
           <Typography variant="body1" sx={{ opacity: 0.8 }}>
-            Elapsed: {elapsedSeconds}s
+            Elapsed: {formatMinSec(elapsedSeconds)}
           </Typography>
         )}
       </Card>

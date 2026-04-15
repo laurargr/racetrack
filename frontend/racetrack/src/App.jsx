@@ -88,15 +88,9 @@ export function App() {
               path="/lap-line-tracker"
               element={<LapLineTracker />}
             ></Route>
-            <Route
-              path="/leader-board"
-              element={<div>Leader board</div>}
-            ></Route>
+            <Route path="/leader-board" element={<LeaderBoard />}></Route>
             <Route path="/next-race" element={<NextRace />}></Route>
-            <Route
-              path="/race-countdown"
-              element={<RaceCountdown />}
-            ></Route>
+            <Route path="/race-countdown" element={<RaceCountdown />}></Route>
             <Route path="/race-flags" element={<RaceFlags />}></Route>
             <Route path="*" element={<div>Not found</div>}></Route>
           </Routes>
