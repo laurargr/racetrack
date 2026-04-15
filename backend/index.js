@@ -122,7 +122,7 @@ io.use((client, next) => {
   if (authenticationResponse) {
     next();
   } else {
-    console.log("authentication falied for user", username);
+    console.log("authentication failed for user", username);
     setTimeout(() => {
       next(new Error("invalid access key"));
     }, 500);
