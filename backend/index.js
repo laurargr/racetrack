@@ -13,7 +13,11 @@ const pastSessions = [];
 const sessionTimeouts = new Map();
 const sessionIntervals = new Map();
 
-const DEV_SESSION_TIMEOUT = 60 * 1000; // 1 minute
+const SESSION_DURATION_MS =
+  process.env.APP_ENV === "development" ||
+  process.env.NODE_ENV === "development"
+    ? 60 * 1000 // 1 minute on npm run dev
+    : 10 * 60 * 1000; // 10 minutes on npm start
 const SESSION_TICK_MS = 1000;
 
 const emitSessions = (io) => {
@@ -37,12 +41,12 @@ const stopSessionTimer = (sessionId) => {
 const updateSessionClock = (session) => {
   if (!session.startedAt) {
     session.elapsedSeconds = 0;
-    session.remainingSeconds = Math.ceil(DEV_SESSION_TIMEOUT / 1000);
+    session.remainingSeconds = Math.ceil(SESSION_DURATION_MS / 1000);
     return;
   }
 
   const elapsedMs = Date.now() - session.startedAt;
-  const remainingMs = Math.max(0, DEV_SESSION_TIMEOUT - elapsedMs);
+  const remainingMs = Math.max(0, SESSION_DURATION_MS - elapsedMs);
   session.elapsedSeconds = Math.floor(elapsedMs / 1000);
   session.remainingSeconds = Math.ceil(remainingMs / 1000);
 };
@@ -70,7 +74,7 @@ const startSessionTimer = (io, session) => {
 
   const timeoutId = setTimeout(() => {
     endRunningSession(io, session.id, "timeout");
-  }, DEV_SESSION_TIMEOUT);
+  }, SESSION_DURATION_MS);
 
   sessionIntervals.set(session.id, intervalId);
   sessionTimeouts.set(session.id, timeoutId);
@@ -293,5 +297,9 @@ io.on("connection", (client) => {
 });
 
 httpServer.listen(3000, () => {
-  console.log("server running");
+  console.log(
+    `server running (${process.env.APP_ENV || process.env.NODE_ENV || "production"} mode, session duration ${Math.floor(
+      SESSION_DURATION_MS / 60000,
+    )} min)`,
+  );
 });

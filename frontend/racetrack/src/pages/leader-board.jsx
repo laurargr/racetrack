@@ -14,10 +14,10 @@ import {
 import { DriverAvatar } from "../components/DriverAvatar.jsx";
 
 const MODE_STYLES = {
-  safe: { bg: "#16a34a", label: "Safe" },
-  hazard: { bg: "#d97706", label: "Hazard" },
-  danger: { bg: "#dc2626", label: "Danger" },
-  finish: { bg: "#374151", label: "Finish" },
+  safe: { bg: "green", label: "Safe" },
+  hazard: { bg: "yellow", label: "Hazard" },
+  danger: { bg: "red", label: "Danger" },
+  finish: { bg: "gray", label: "Finish" },
 };
 
 /** Build sorted leaderboard rows from a session + drivers list. */
@@ -63,6 +63,14 @@ function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function formatMinSec(seconds) {
+  if (seconds === null || seconds === undefined) return "0.00";
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  const m = Math.floor(safeSeconds / 60);
+  const s = safeSeconds % 60;
+  return `${m}.${String(s).padStart(2, "0")}`;
 }
 
 export function LeaderBoard() {
@@ -143,7 +151,7 @@ export function LeaderBoard() {
           {isLive && displaySession && (
             <>
               <Typography variant="h5" fontWeight={600}>
-                {formatTime(displaySession.remainingSeconds)} remaining
+                {formatMinSec(displaySession.remainingSeconds)} remaining
               </Typography>
               {modeInfo && (
                 <Chip

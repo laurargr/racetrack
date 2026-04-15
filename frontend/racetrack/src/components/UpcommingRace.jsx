@@ -1,6 +1,13 @@
 import { Box, Button, Grid, Typography } from "@mui/material";
 import { socket } from "../socket";
 
+function formatMinSec(totalSeconds) {
+  const seconds = Math.max(0, Number(totalSeconds) || 0);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}.${String(remainingSeconds).padStart(2, "0")}`;
+}
+
 export function UpcomingRace({ race, nextRace }) {
   const handleStartRace = () =>
     socket.emit("startSession", { sessionId: race.id }, (response) => {
@@ -38,8 +45,8 @@ export function UpcomingRace({ race, nextRace }) {
 
       {race.status === "running" && (
         <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-          Elapsed: {race.elapsedSeconds ?? 0}s | Remaining:{" "}
-          {race.remainingSeconds ?? 0}s
+          Elapsed: {formatMinSec(race.elapsedSeconds)} | Remaining:{" "}
+          {formatMinSec(race.remainingSeconds)}
         </Typography>
       )}
 
