@@ -3,16 +3,10 @@ const observer_key = process.env.observer_key;
 const safety_key = process.env.safety_key;
 
 export function validations() {
-  if (!receptionist_key) {
-    console.error("receptionist_key is not defined");
+  if (!receptionist_key || !observer_key || !safety_key) {
+    console.error("Error: Missing required environment variables. Please export receptionist_key, observer_key, and safety_key.");
     process.exit(1);
-  } else if (!observer_key) {
-    console.error("observer_key is not defined");
-    process.exit(1);
-  } else if (!observer_key) {
-    console.error("safety_key is not defined");
-    process.exit(1);
-  }
+}
 }
 
 export function handleAuthentication(username, token) {
