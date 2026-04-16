@@ -10,7 +10,7 @@ const modes = {
   },
 };
 
-export const RaceModeControl = ({ mode, onClick }) => {
+export const RaceModeControl = ({ mode, onClick, disabled = false }) => {
   const isFinish = mode === "finish";
 
   return (
@@ -25,9 +25,12 @@ export const RaceModeControl = ({ mode, onClick }) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
       }}
-      onClick={onClick}
+      onClick={() => {
+        if (!disabled) onClick();
+      }}
     >
       <h1
         style={{
