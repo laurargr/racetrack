@@ -293,6 +293,13 @@ io.on("connection", (client) => {
       callback({ message: "session not found" });
       return;
     }
+    if (session.mode === "finish" && data.mode !== "finish") {
+      callback({
+        ok: false,
+        message: "race mode is locked at finish and cannot be changed",
+      });
+      return;
+    }
     session.mode = data.mode;
     emitSessions(io);
     callback({ ok: true, message: "race mode updated successfully" });

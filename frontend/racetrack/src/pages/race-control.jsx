@@ -58,6 +58,8 @@ export function RaceControl() {
       },
     );
 
+  const isModeLockedAtFinish = runningRaceOrNextUp?.mode === "finish";
+
   return connected ? (
     <Box
       sx={{
@@ -91,14 +93,17 @@ export function RaceControl() {
           <RaceModeControl
             mode="safe"
             onClick={() => setCurrentRaceMode("safe")}
+            disabled={isModeLockedAtFinish}
           />
           <RaceModeControl
             mode="hazard"
             onClick={() => setCurrentRaceMode("hazard")}
+            disabled={isModeLockedAtFinish}
           />
           <RaceModeControl
             mode="danger"
             onClick={() => setCurrentRaceMode("danger")}
+            disabled={isModeLockedAtFinish}
           />
           <RaceModeControl
             mode="finish"
