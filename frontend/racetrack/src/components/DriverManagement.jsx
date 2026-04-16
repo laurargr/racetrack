@@ -25,7 +25,7 @@ import { socket } from "../socket";
 import { useState } from "react";
 import { DriverAvatar } from "./DriverAvatar";
 
-export function DriverManagement({ drivers }) {
+export function DriverManagement({ drivers, sessions = [] }) {
   const [name, setName] = useState("");
 
   const [openEditModal, setOpenEditModal] = useState(false);
@@ -74,6 +74,13 @@ export function DriverManagement({ drivers }) {
     setOpenEditModal(true);
   };
 
+  const isDriverLocked = (driverId) => {
+    return sessions.some(
+      (session) =>
+        session.status === "running" && session.driverIds.includes(driverId),
+    );
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <Paper>
@@ -107,6 +114,8 @@ export function DriverManagement({ drivers }) {
             </TableHead>
             <TableBody>
               {drivers.map((d) => {
+                const locked = isDriverLocked(d.id);
+                const lockMessage = "Driver is in a running race";
                 return (
                   <TableRow key={d.id} hover>
                     <TableCell sx={{ color: "text.disabled", fontSize: 12 }}>
@@ -119,18 +128,22 @@ export function DriverManagement({ drivers }) {
                       </Stack>
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Edit Driver">
+                      <Tooltip title={locked ? lockMessage : "Edit Driver"}>
                         <IconButton
                           size="small"
                           color="primary"
                           onClick={() => handleEditDriver(d)}
+                          disabled={locked}
                         >
                           <Edit fontSize="small" />
                         </IconButton>
+                      </Tooltip>
+                      <Tooltip title={locked ? lockMessage : "Delete Driver"}>
                         <IconButton
                           size="small"
                           color="error"
                           onClick={() => hanndleDeleteDriver(d.id)}
+                          disabled={locked}
                         >
                           <Close fontSize="small" />
                         </IconButton>
