@@ -1,3 +1,6 @@
-import {io} from "socket.io-client"
+import { io } from "socket.io-client";
 
- export const socket = io("http://localhost:3000", {autoConnect: false, reconnection: false})
+export const socket = io("https://racetrack-g3wj.onrender.com", {
+  autoConnect: false,
+  reconnection: false,
+});
