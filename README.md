@@ -76,6 +76,22 @@ Backend Socket.IO server runs on:
 http://localhost:3000
 ```
 
+## Production Access
+
+Live deployment:
+
+- https://racetrack-rho.vercel.app/
+
+Page shortcuts (production):
+
+- Front Desk: https://racetrack-rho.vercel.app/front-desk
+- Race Control: https://racetrack-rho.vercel.app/race-control
+- Lap-line Tracker: https://racetrack-rho.vercel.app/lap-line-tracker
+- Leader Board: https://racetrack-rho.vercel.app/leader-board
+- Next Race: https://racetrack-rho.vercel.app/next-race
+- Race Countdown: https://racetrack-rho.vercel.app/race-countdown
+- Race Flags: https://racetrack-rho.vercel.app/race-flags
+
 ## Routes
 
 ### Admin Pages
