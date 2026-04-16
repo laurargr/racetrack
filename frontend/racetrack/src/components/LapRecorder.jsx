@@ -2,10 +2,13 @@ import { Box, Typography } from "@mui/material";
 import { DriverAvatar } from "./DriverAvatar";
 
 export const LapRecorder = ({ race, drivers, onDriverClick = () => {} }) => {
+    const assignedDriverIds = (race.driverIds || []).filter((driverId) =>
+        Number.isInteger(driverId),
+    );
 
-    return race.driverIds.length > 0 ? (
+    return assignedDriverIds.length > 0 ? (
         <Box sx={{ mt: 4, width: "80%", mx: "auto" }}>
-            {race.driverIds.map((driverId) => {
+            {assignedDriverIds.map((driverId) => {
                 const driver = drivers.find((d) => d.id === driverId);
                 if (!driver) return null;
 
@@ -48,7 +51,7 @@ export const LapRecorder = ({ race, drivers, onDriverClick = () => {} }) => {
                                 color="text.secondary"
                                 lineHeight={1.2}
                             >
-                                Car Number: {race.driverIds.indexOf(driver.id) + 1}
+                                Car Number: {(race.driverIds || []).indexOf(driver.id) + 1}
                             </Typography>
                         </Box>
                         <Typography

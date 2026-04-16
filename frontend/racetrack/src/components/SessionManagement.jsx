@@ -1,40 +1,41 @@
 import {
   Box,
   Button,
-  Checkbox,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   IconButton,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemButton,
-  ListItemText,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { socket } from "../socket";
-import {
-  Add,
-  Close,
-  EmojiEvents,
-  ExpandLess,
-  ExpandMore,
-} from "@mui/icons-material";
+import { Add, Close, EmojiEvents } from "@mui/icons-material";
 import { useState } from "react";
-import { DriverAvatar } from "./DriverAvatar";
 import { AssignedCars } from "./AssignedCars";
 
 const MAX_DRIVERS = 8;
 
 export const SessionManagement = ({ sessions, drivers }) => {
   const sessionsToShow = sessions.filter((s) => s.status !== "running");
+
+  const normalizeCarAssignments = (driverIds = []) => {
+    const normalized = Array(MAX_DRIVERS).fill(null);
+    driverIds.slice(0, MAX_DRIVERS).forEach((id, index) => {
+      normalized[index] = Number.isInteger(id) ? id : null;
+    });
+    return normalized;
+  };
+
+  const getAssignedCount = (driverIds = []) =>
+    driverIds.filter((id) => id !== null).length;
 
   const handleAddDriversToSession = (session, selectedDrivers) => {
     console.log("Adding drivers", selectedDrivers, "to session", session);
@@ -59,22 +60,27 @@ export const SessionManagement = ({ sessions, drivers }) => {
 
   const openModal = (sessionId) => {
     const session = sessions.find((s) => s.id === sessionId);
-    setModal({ sessionId, tempSelected: [...session.driverIds] });
+    setModal({
+      sessionId,
+      tempSelected: normalizeCarAssignments(session?.driverIds ?? []),
+    });
   };
 
-  const toggleModalDriver = (driverId) => {
+  const assignDriverToCar = (carIndex, rawValue) => {
     setModal((m) => {
-      const sel = m.tempSelected.includes(driverId);
-      if (sel)
-        return {
-          ...m,
-          tempSelected: m.tempSelected.filter((id) => id !== driverId),
-        };
-      if (m.tempSelected.length >= MAX_DRIVERS) return m;
-      return { ...m, tempSelected: [...m.tempSelected, driverId] };
-    });
+      const nextSelected = [...m.tempSelected];
+      const driverId = rawValue === "" ? null : Number(rawValue);
 
-    console.log(modal);
+      if (driverId !== null) {
+        const duplicateIndex = nextSelected.findIndex((id) => id === driverId);
+        if (duplicateIndex !== -1) {
+          nextSelected[duplicateIndex] = null;
+        }
+      }
+
+      nextSelected[carIndex] = Number.isInteger(driverId) ? driverId : null;
+      return { ...m, tempSelected: nextSelected };
+    });
   };
 
   const handleCreateSession = () => {
@@ -178,44 +184,33 @@ export const SessionManagement = ({ sessions, drivers }) => {
           color="text.secondary"
           sx={{ px: 3, pb: 1 }}
         >
-          {modal?.tempSelected.length}/{MAX_DRIVERS} selected. Cars are
-          automatically assinged per selected order.
+          {getAssignedCount(modal?.tempSelected)}/{MAX_DRIVERS} assigned. Pick
+          each car driver directly.
         </Typography>
         <DialogContent sx={{ pt: 0 }}>
-          <List dense disablePadding>
-            {drivers.map((d) => {
-              const sel = modal?.tempSelected.includes(d.id) || false;
-              const full = (modal?.tempSelected.length || 0) >= MAX_DRIVERS;
-              const disabled = !sel && full;
+          <Stack spacing={1}>
+            {Array.from({ length: MAX_DRIVERS }).map((_, index) => {
+              const selectedDriverId = modal?.tempSelected[index] ?? null;
+
               return (
-                <ListItem key={d.id} disablePadding>
-                  <ListItemButton
-                    onClick={() => !disabled && toggleModalDriver(d.id)}
-                    disabled={disabled}
-                    selected={sel}
-                    sx={{ borderRadius: 1, mb: 0.5 }}
+                <FormControl key={index} fullWidth size="small">
+                  <InputLabel>{`Car ${index + 1}`}</InputLabel>
+                  <Select
+                    label={`Car ${index + 1}`}
+                    value={selectedDriverId ?? ""}
+                    onChange={(event) => assignDriverToCar(index, event.target.value)}
                   >
-                    <ListItemAvatar sx={{ minWidth: 44 }}>
-                      <DriverAvatar name={d.name} size={32} />
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={d.name}
-                      secondary={
-                        "Car Number: " +
-                        (modal?.tempSelected.indexOf(d.id) + 1 || "N/A")
-                      }
-                    />
-                    <Checkbox
-                      checked={sel}
-                      tabIndex={-1}
-                      disableRipple
-                      color="primary"
-                    />
-                  </ListItemButton>
-                </ListItem>
+                    <MenuItem value="">Unassigned</MenuItem>
+                    {drivers.map((driver) => (
+                      <MenuItem key={driver.id} value={driver.id}>
+                        {driver.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               );
             })}
-          </List>
+          </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModal(null)}>Cancel</Button>

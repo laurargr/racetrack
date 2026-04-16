@@ -53,14 +53,20 @@ export function NextRace() {
   const assignedCars = useMemo(() => {
     if (!nextRace?.driverIds?.length) return [];
 
-    return nextRace.driverIds.map((driverId, index) => {
-      const driver = drivers.find((d) => d.id === driverId);
-      return {
-        id: driverId,
-        carNumber: index + 1,
-        name: driver?.name ?? `Unknown driver #${driverId}`,
-      };
-    });
+    return nextRace.driverIds
+      .map((driverId, index) => {
+        if (!Number.isInteger(driverId)) return null;
+
+        const driver = drivers.find((d) => d.id === driverId);
+        if (!driver) return null;
+
+        return {
+          id: driverId,
+          carNumber: index + 1,
+          name: driver.name,
+        };
+      })
+      .filter(Boolean);
   }, [nextRace, drivers]);
 
   return (

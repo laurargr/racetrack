@@ -22,12 +22,17 @@ const MODE_STYLES = {
 
 /** Build sorted leaderboard rows from a session + drivers list. */
 function buildRows(session, drivers) {
-  if (!session?.driverIds?.length) return [];
+  const assignedCars = (session?.driverIds || [])
+    .map((driverId, idx) =>
+      Number.isInteger(driverId) ? { driverId, carNumber: idx + 1 } : null,
+    )
+    .filter(Boolean);
 
-  return session.driverIds
-    .map((driverId, idx) => {
+  if (!assignedCars.length) return [];
+
+  return assignedCars
+    .map(({ driverId, carNumber }) => {
       const driver = drivers.find((d) => d.id === driverId);
-      const carNumber = idx + 1;
 
       const driverLaps = (session.laps ?? [])
         .filter((l) => l.driverId === driverId)

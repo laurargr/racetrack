@@ -345,15 +345,34 @@ io.on("connection", (client) => {
       return;
     }
 
-    // up to 8 is alowed because we have only 8 cars, and each driver needs a car
-    if (data.driverIds.length > 8) {
+    const rawDriverIds = Array.isArray(data.driverIds)
+      ? data.driverIds.slice(0, 8)
+      : [];
+    const normalizedDriverIds = rawDriverIds.map((id) =>
+      Number.isInteger(id) ? id : null,
+    );
+    const assignedDriverIds = normalizedDriverIds.filter((id) => id !== null);
+
+    // up to 8 is allowed because we only have 8 cars
+    if (assignedDriverIds.length > 8) {
       callback({
         ok: false,
         message: "too many drivers for this session, max is 8",
       });
       return;
     }
-    session.driverIds = data.driverIds;
+
+    if (new Set(assignedDriverIds).size !== assignedDriverIds.length) {
+      callback({ ok: false, message: "a driver can only be assigned once" });
+      return;
+    }
+
+    if (assignedDriverIds.some((driverId) => !drivers.some((d) => d.id === driverId))) {
+      callback({ ok: false, message: "one or more assigned drivers were not found" });
+      return;
+    }
+
+    session.driverIds = normalizedDriverIds;
     persistState();
 
     emitSessions(io);
