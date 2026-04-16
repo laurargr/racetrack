@@ -198,7 +198,9 @@ export const SessionManagement = ({ sessions, drivers }) => {
                   <Select
                     label={`Car ${index + 1}`}
                     value={selectedDriverId ?? ""}
-                    onChange={(event) => assignDriverToCar(index, event.target.value)}
+                    onChange={(event) =>
+                      assignDriverToCar(index, event.target.value)
+                    }
                   >
                     <MenuItem value="">Unassigned</MenuItem>
                     {drivers.map((driver) => (
