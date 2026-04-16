@@ -53,7 +53,7 @@ export function FrontDesk() {
           mx: "auto",
         }}
       >
-        <DriverManagement drivers={drivers} />
+        <DriverManagement drivers={drivers} sessions={sessions} />
         <SessionManagement sessions={sessions} drivers={drivers} />
       </Box>
     </Box>

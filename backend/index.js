@@ -24,6 +24,13 @@ const emitSessions = (io) => {
   io.emit("sessionsList", sessions);
 };
 
+const isDriverInRunningSession = (driverId) => {
+  return sessions.some(
+    (session) =>
+      session.status === "running" && session.driverIds.includes(driverId),
+  );
+};
+
 const stopSessionTimer = (sessionId) => {
   const timeout = sessionTimeouts.get(sessionId);
   if (timeout) {
@@ -160,6 +167,13 @@ io.on("connection", (client) => {
       callback({ ok: false, message: "driver not found" });
       return;
     }
+    if (isDriverInRunningSession(data.driverId)) {
+      callback({
+        ok: false,
+        message: "cannot edit a driver assigned to a running session",
+      });
+      return;
+    }
     if (drivers.find((d) => d.name === data.name)) {
       callback({ ok: false, message: "driver with this name already exists" });
       return;
@@ -174,6 +188,13 @@ io.on("connection", (client) => {
     const driverIndex = drivers.findIndex((d) => d.id === data.driverId);
     if (driverIndex === -1) {
       callback({ ok: false, message: "driver not found" });
+      return;
+    }
+    if (isDriverInRunningSession(data.driverId)) {
+      callback({
+        ok: false,
+        message: "cannot delete a driver assigned to a running session",
+      });
       return;
     }
 
@@ -204,6 +225,13 @@ io.on("connection", (client) => {
     const session = sessions.find((s) => s.id === data.sessionId);
     if (!session) {
       callback({ message: "session not found" });
+      return;
+    }
+    if (session.status === "running") {
+      callback({
+        ok: false,
+        message: "cannot edit drivers for a running session",
+      });
       return;
     }
 
