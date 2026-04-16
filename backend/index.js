@@ -367,8 +367,15 @@ io.on("connection", (client) => {
       return;
     }
 
-    if (assignedDriverIds.some((driverId) => !drivers.some((d) => d.id === driverId))) {
-      callback({ ok: false, message: "one or more assigned drivers were not found" });
+    if (
+      assignedDriverIds.some(
+        (driverId) => !drivers.some((d) => d.id === driverId),
+      )
+    ) {
+      callback({
+        ok: false,
+        message: "one or more assigned drivers were not found",
+      });
       return;
     }
 

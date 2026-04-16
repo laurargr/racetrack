@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# runtime state (backend persistence)
+state.json
+state.json.tmp
+
+# IDE
+.idea/
