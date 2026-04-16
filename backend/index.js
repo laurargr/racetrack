@@ -1,15 +1,71 @@
 require("dotenv").config();
 const { time } = require("console");
 const { validations, handleAuthentication } = require("./validations");
+const fs = require("fs");
+const path = require("path");
 
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
 validations();
-const drivers = [];
-const sessions = [];
-const pastSessions = [];
+const STATE_FILE_PATH = path.join(__dirname, "state.json");
+
+const getMaxId = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return 0;
+  return items.reduce((maxId, item) => Math.max(maxId, item?.id || 0), 0);
+};
+
+const loadPersistentState = () => {
+  if (!fs.existsSync(STATE_FILE_PATH)) {
+    return {
+      drivers: [],
+      sessions: [],
+      pastSessions: [],
+      driverIdCounter: 0,
+      sessionIdCounter: 0,
+    };
+  }
+
+  try {
+    const raw = fs.readFileSync(STATE_FILE_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    const drivers = Array.isArray(parsed.drivers) ? parsed.drivers : [];
+    const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+    const pastSessions = Array.isArray(parsed.pastSessions)
+      ? parsed.pastSessions
+      : [];
+
+    return {
+      drivers,
+      sessions,
+      pastSessions,
+      driverIdCounter: Number.isInteger(parsed.driverIdCounter)
+        ? parsed.driverIdCounter
+        : getMaxId(drivers),
+      sessionIdCounter: Number.isInteger(parsed.sessionIdCounter)
+        ? parsed.sessionIdCounter
+        : getMaxId([...sessions, ...pastSessions]),
+    };
+  } catch (error) {
+    console.error("failed to load persisted state:", error.message);
+    return {
+      drivers: [],
+      sessions: [],
+      pastSessions: [],
+      driverIdCounter: 0,
+      sessionIdCounter: 0,
+    };
+  }
+};
+
+const initialState = loadPersistentState();
+
+const drivers = initialState.drivers;
+const sessions = initialState.sessions;
+const pastSessions = initialState.pastSessions;
+let driverIdCounter = initialState.driverIdCounter;
+let sessionIdCounter = initialState.sessionIdCounter;
 const sessionTimeouts = new Map();
 const sessionIntervals = new Map();
 
@@ -20,7 +76,22 @@ const SESSION_DURATION_MS =
     : 10 * 60 * 1000; // 10 minutes on npm start
 const SESSION_TICK_MS = 1000;
 
+const persistState = () => {
+  const stateSnapshot = {
+    drivers,
+    sessions,
+    pastSessions,
+    driverIdCounter,
+    sessionIdCounter,
+  };
+
+  const tmpPath = `${STATE_FILE_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(stateSnapshot, null, 2), "utf8");
+  fs.renameSync(tmpPath, STATE_FILE_PATH);
+};
+
 const emitSessions = (io) => {
+  if (!io) return;
   io.emit("sessionsList", sessions);
 };
 
@@ -58,11 +129,25 @@ const updateSessionClock = (session) => {
   session.remainingSeconds = Math.ceil(remainingMs / 1000);
 };
 
-const startSessionTimer = (io, session) => {
+const startSessionTimer = (io, session, options = {}) => {
+  const { resume = false } = options;
+
   stopSessionTimer(session.id);
 
-  session.startedAt = Date.now();
+  if (!resume || !session.startedAt) {
+    session.startedAt = Date.now();
+  }
+
   updateSessionClock(session);
+
+  const remainingMs = Math.max(
+    0,
+    SESSION_DURATION_MS - (Date.now() - session.startedAt),
+  );
+  if (remainingMs <= 0) {
+    endRunningSession(io, session.id, "timeout");
+    return;
+  }
 
   const intervalId = setInterval(() => {
     if (session.status !== "running") {
@@ -81,7 +166,7 @@ const startSessionTimer = (io, session) => {
 
   const timeoutId = setTimeout(() => {
     endRunningSession(io, session.id, "timeout");
-  }, SESSION_DURATION_MS);
+  }, remainingMs);
 
   sessionIntervals.set(session.id, intervalId);
   sessionTimeouts.set(session.id, timeoutId);
@@ -101,12 +186,16 @@ const endRunningSession = (io, sessionId, reason = "manual") => {
   pastSessions.push(session);
   sessions.splice(sessionIndex, 1);
 
-  io.emit("pastSessionsList", pastSessions);
-  io.emit("sessionNotification", {
-    type: "session-ended",
-    sessionId,
-    reason,
-  });
+  persistState();
+
+  if (io) {
+    io.emit("pastSessionsList", pastSessions);
+    io.emit("sessionNotification", {
+      type: "session-ended",
+      sessionId,
+      reason,
+    });
+  }
   emitSessions(io);
   return true;
 };
@@ -119,6 +208,23 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
+
+const restoreRuntimeState = () => {
+  sessions.forEach((session) => updateSessionClock(session));
+
+  const runningSessions = sessions.filter(
+    (session) => session.status === "running",
+  );
+  runningSessions.forEach((session) => {
+    if (session.remainingSeconds <= 0) {
+      endRunningSession(null, session.id, "timeout");
+      return;
+    }
+    startSessionTimer(io, session, { resume: true });
+  });
+};
+
+restoreRuntimeState();
 
 io.use((client, next) => {
   const username = client.handshake.auth.username;
@@ -149,7 +255,7 @@ io.on("connection", (client) => {
   client.on("createDriver", (data, callback) => {
     console.log("creating driver with name", data.name);
     const newDriver = {
-      id: drivers.length + 1,
+      id: ++driverIdCounter,
       name: data.name,
     };
     if (drivers.find((d) => d.name === newDriver.name)) {
@@ -157,6 +263,7 @@ io.on("connection", (client) => {
       return;
     }
     drivers.push(newDriver);
+    persistState();
     io.emit("driversList", drivers);
     callback({ ok: true, message: "driver created successfully" });
   });
@@ -179,6 +286,7 @@ io.on("connection", (client) => {
       return;
     }
     driver.name = data.name;
+    persistState();
     io.emit("driversList", drivers);
     io.emit("sessionsList", sessions);
     callback({ ok: true, message: "driver edited successfully" });
@@ -204,6 +312,7 @@ io.on("connection", (client) => {
     });
 
     drivers.splice(driverIndex, 1);
+    persistState();
     io.emit("driversList", drivers);
     io.emit("sessionsList", sessions);
     console.log("driver deleted with id", sessions);
@@ -212,13 +321,14 @@ io.on("connection", (client) => {
 
   client.on("createSession", () => {
     console.log("creating new session");
-    const id = sessions.length > 0 ? sessions[sessions.length - 1].id + 1 : 1;
+    const id = ++sessionIdCounter;
     const newSession = {
       id: id,
       name: "Race #" + id,
       driverIds: [],
     };
     sessions.push(newSession);
+    persistState();
     emitSessions(io);
   });
   client.on("assignDriverToSession", (data, callback) => {
@@ -244,6 +354,7 @@ io.on("connection", (client) => {
       return;
     }
     session.driverIds = data.driverIds;
+    persistState();
 
     emitSessions(io);
     console.log(sessions);
@@ -257,6 +368,7 @@ io.on("connection", (client) => {
     }
     stopSessionTimer(data.sessionId);
     sessions.splice(sessionIndex, 1);
+    persistState();
     emitSessions(io);
   });
 
@@ -273,6 +385,7 @@ io.on("connection", (client) => {
     session.status = "running";
     session.mode = "safe"; // default mode
     startSessionTimer(io, session);
+    persistState();
 
     emitSessions(io);
     callback({ ok: true, message: "session started successfully" });
@@ -301,6 +414,7 @@ io.on("connection", (client) => {
       return;
     }
     session.mode = data.mode;
+    persistState();
     emitSessions(io);
     callback({ ok: true, message: "race mode updated successfully" });
   });
@@ -326,6 +440,7 @@ io.on("connection", (client) => {
       driverId: data.driverId,
       time: session.elapsedSeconds,
     });
+    persistState();
     emitSessions(io);
     callback({ ok: true, message: "lap recorded successfully" });
   });
